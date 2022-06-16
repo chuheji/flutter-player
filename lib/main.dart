@@ -1,17 +1,24 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-09 14:44:59
- * @LastEditTime: 2022-06-15 16:59:05
+ * @LastEditTime: 2022-06-16 15:08:32
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/main.dart
  * @Description: 文件描述
  */
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:app/views/discover.dart';
+import 'package:app/views/podcast.dart';
+import 'package:app/views/my.dart';
+import 'package:app/views/myfocus.dart';
+import 'package:app/views/yuncun.dart';
 
 void main() {
   runApp(MyApp());
 }
+
+Map<String, WidgetBuilder> routes = {'/discover': (context) => Discover()};
 
 class MyApp extends StatelessWidget {
   @override
@@ -22,6 +29,8 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: MyHomePage(title: 'Flutter Demo Home Page'),
+      initialRoute: "/",
+      routes: routes,
     );
   }
 }
@@ -30,14 +39,16 @@ class MyHomePage extends StatefulWidget {
   MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
+  // DrawerController drawerController;
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
   String str = 'initVal';
+  int _activeTab = 0;
+  final pages = [Discover(), Podcast(), My(), Myfocus(), Yuncun()];
 
   getDataTest() async {
     setState(() {
@@ -53,25 +64,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void initState() {
-    print(222);
     getDataTest();
     super.initState();
   }
 
-  void _incrementCounter() {
-    getDataTest();
+  void _handleTap(int index) {
     setState(() {
-      _counter++;
+      _activeTab = index;
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Drawer Demo'),
-      ),
-      drawer: Drawer(
+  get _drawer => Drawer(
           child: Container(
         decoration: BoxDecoration(color: Color(0xFFeeeeee)),
         child: Column(
@@ -171,7 +174,50 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
-      )),
+      ));
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text('Drawer Demo'),
+      // ),
+      drawer: _drawer,
+      body: Container(
+        child: Builder(builder: (BuildContext context) {
+          return Wrap(
+            children: [
+              Container(
+                margin: EdgeInsets.fromLTRB(0, 20, 0, 0),
+                child: Flex(
+                  direction: Axis.horizontal,
+                  children: [
+                    IconButton(
+                        onPressed: () {
+                          Scaffold.of(context).openDrawer();
+                        },
+                        icon: Icon(Icons.menu)),
+                  ],
+                ),
+              ),
+              pages[_activeTab]
+            ],
+          );
+        }),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.red[400],
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.find_in_page), label: '发现'),
+          BottomNavigationBarItem(icon: Icon(Icons.radio), label: '播客'),
+          BottomNavigationBarItem(icon: Icon(Icons.music_note), label: '我的'),
+          BottomNavigationBarItem(icon: Icon(Icons.people_alt), label: '关注'),
+          BottomNavigationBarItem(icon: Icon(Icons.manage_accounts), label: '云村'),
+        ],
+        currentIndex: _activeTab,
+        onTap: _handleTap,
+      ),
     );
   }
 }
