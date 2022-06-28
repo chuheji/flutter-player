@@ -1,7 +1,7 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-17 15:16:08
- * @LastEditTime: 2022-06-28 08:58:22
+ * @LastEditTime: 2022-06-28 15:48:44
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/views/search.dart
  * @Description: 文件描述
@@ -9,7 +9,6 @@
 import 'package:app/components/ReturnBtn.dart';
 import 'package:app/components/SearchAssociation.dart';
 import 'package:app/components/SearchResult.dart';
-import 'package:app/model/current_song_model.dart';
 import 'package:app/model/song_model.dart';
 import "package:flutter/material.dart";
 import 'package:app/api/searchApi.dart';
@@ -48,7 +47,7 @@ class SearchWidgetState extends State<Search> {
             child: MultiProvider(
               providers: [
                 ChangeNotifierProvider(create: (context) {
-                  return SongModel(false, [], -10);
+                  return SongModel(false, [], -12);
                 }),
               ],
               child: Column(

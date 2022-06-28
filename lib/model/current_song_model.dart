@@ -1,7 +1,7 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-27 13:52:48
- * @LastEditTime: 2022-06-27 15:23:45
+ * @LastEditTime: 2022-06-28 10:33:40
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/model/current_song_model.dart
  * @Description: 文件描述
@@ -14,8 +14,6 @@ class CurrentSongModel with ChangeNotifier {
   CurrentSongModel(this.currentSong);
 
   void editCurrentSong(data) {
-    print('1234567');
-    print(data);
     currentSong = data;
     notifyListeners();
   }

@@ -60,7 +60,7 @@ class SearchResultWidgetState extends State<SearchResult> with TickerProviderSta
           ),
         ),
         Container(
-          height: MediaQuery.of(context).size.height - 120,
+          height: MediaQuery.of(context).size.height - 135,
           child: TabBarView(
             children: [
               Center(child: Text('汽车')),
