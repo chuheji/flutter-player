@@ -1,3 +1,11 @@
+<!--
+ * @Author: liuyouxiang<xlfLuminous@163.com>
+ * @Date: 2022-06-09 14:44:59
+ * @LastEditTime: 2022-06-28 09:16:51
+ * @LastEditors: liuyouxiang<xlfLuminous@163.com>
+ * @FilePath: /app/README.md
+ * @Description: 文件描述
+-->
 # app
 
 A new Flutter project.
@@ -14,3 +22,10 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter, view our
 [online documentation](https://flutter.dev/docs), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+1. flutter和dart简介
+2. 实际应用
+3. 生态
+4. ui表现形式
+5. 路由
+6. 状态管理

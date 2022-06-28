@@ -1,32 +1,37 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-09 14:44:59
- * @LastEditTime: 2022-06-16 15:08:32
+ * @LastEditTime: 2022-06-27 14:29:51
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/main.dart
  * @Description: 文件描述
  */
-import 'package:dio/dio.dart';
+import 'package:app/views/playsongcontainer.dart';
+import 'package:app/views/search.dart';
 import 'package:flutter/material.dart';
 import 'package:app/views/discover.dart';
 import 'package:app/views/podcast.dart';
 import 'package:app/views/my.dart';
 import 'package:app/views/myfocus.dart';
 import 'package:app/views/yuncun.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 void main() {
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(statusBarColor: Colors.transparent));
   runApp(MyApp());
 }
 
-Map<String, WidgetBuilder> routes = {'/discover': (context) => Discover()};
+Map<String, WidgetBuilder> routes = {'/search': (context) => Search(), '/playsong': (context) => Playsongcontainer()};
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      builder: EasyLoading.init(),
+      title: '网易云音乐',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.red,
       ),
       home: MyHomePage(title: 'Flutter Demo Home Page'),
       initialRoute: "/",
@@ -39,7 +44,6 @@ class MyHomePage extends StatefulWidget {
   MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
-  // DrawerController drawerController;
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -50,21 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   int _activeTab = 0;
   final pages = [Discover(), Podcast(), My(), Myfocus(), Yuncun()];
 
-  getDataTest() async {
-    setState(() {
-      str = '';
-    });
-    String url = 'http://test.liuyouxiang.site/song/url?id=33894312';
-    Dio dio = new Dio();
-    Response response = await dio.get(url);
-    setState(() {
-      print(response);
-      str = response.data.toString();
-    });
-  }
-
   void initState() {
-    getDataTest();
     super.initState();
   }
 
@@ -103,7 +93,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ],
                     ),
                     Image.asset(
-                      'images/scan.png',
+                      'assets/images/scan.png',
                       width: 20,
                       height: 20,
                     )
@@ -183,28 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
       //   title: const Text('Drawer Demo'),
       // ),
       drawer: _drawer,
-      body: Container(
-        child: Builder(builder: (BuildContext context) {
-          return Wrap(
-            children: [
-              Container(
-                margin: EdgeInsets.fromLTRB(0, 20, 0, 0),
-                child: Flex(
-                  direction: Axis.horizontal,
-                  children: [
-                    IconButton(
-                        onPressed: () {
-                          Scaffold.of(context).openDrawer();
-                        },
-                        icon: Icon(Icons.menu)),
-                  ],
-                ),
-              ),
-              pages[_activeTab]
-            ],
-          );
-        }),
-      ),
+      body: pages[_activeTab],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.red[400],
