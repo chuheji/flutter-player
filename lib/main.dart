@@ -1,7 +1,7 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-09 14:44:59
- * @LastEditTime: 2022-06-27 14:29:51
+ * @LastEditTime: 2022-06-29 13:47:16
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/main.dart
  * @Description: 文件描述
@@ -16,6 +16,7 @@ import 'package:app/views/myfocus.dart';
 import 'package:app/views/yuncun.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(statusBarColor: Colors.transparent));
@@ -27,7 +28,7 @@ Map<String, WidgetBuilder> routes = {'/search': (context) => Search(), '/playson
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       builder: EasyLoading.init(),
       title: '网易云音乐',
       theme: ThemeData(

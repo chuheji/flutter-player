@@ -1,14 +1,14 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-22 16:21:17
- * @LastEditTime: 2022-06-24 16:00:30
+ * @LastEditTime: 2022-06-29 13:39:00
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/components/OnlySong.dart
  * @Description: 文件描述
  */
-import 'package:app/model/song_model.dart';
+import 'package:app/controller/song_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 import 'SongItem.dart';
 
@@ -21,26 +21,25 @@ class OnlySong extends StatefulWidget {
 
 class OnlySongState extends State<OnlySong> {
   ScrollController scrollController = ScrollController();
+  final controller = Get.put(SongController(false, [], -12));
 
   void initState() {
-    SongModel provider = Provider.of(context, listen: false);
     super.initState();
     this.scrollController.addListener(() {
       // 滑动到底部的关键判断
-      if (!provider.isLoading &&
+      if (!controller.isLoading &&
           this.scrollController.position.pixels >= this.scrollController.position.maxScrollExtent) {
         // 开始加载数据
         setState(() {
-          provider.setLoadingTrue();
-          provider.getSongList();
+          controller.setLoadingTrue();
+          controller.getSongList();
         });
       }
     });
   }
 
   Widget renderBottom() {
-    SongModel provider = Provider.of(context, listen: false);
-    if (provider.isLoading) {
+    if (controller.isLoading) {
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Container(
@@ -82,12 +81,11 @@ class OnlySongState extends State<OnlySong> {
 
   @override
   Widget build(BuildContext context) {
-    SongModel provider = Provider.of(context);
     return (ListView.separated(
         controller: scrollController,
         itemBuilder: (context, index) {
-          if (index < provider.songList.length) {
-            return SongItem(provider.songList[index]);
+          if (index < controller.songList.length) {
+            return SongItem(controller.songList[index]);
           } else {
             return this.renderBottom();
           }
@@ -98,6 +96,6 @@ class OnlySongState extends State<OnlySong> {
             color: Colors.black26,
           );
         },
-        itemCount: provider.songList.length + 1));
+        itemCount: controller.songList.length + 1));
   }
 }
