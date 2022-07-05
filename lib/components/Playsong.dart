@@ -1,15 +1,17 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-27 14:31:32
- * @LastEditTime: 2022-06-28 15:53:19
+ * @LastEditTime: 2022-06-29 16:23:43
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/components/Playsong.dart
  * @Description: 文件描述
  */
 import 'package:app/api/songApi.dart';
+import 'package:app/controller/current_song_controller.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/instance_manager.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -18,9 +20,7 @@ import 'common.dart';
 void main() => runApp(const Playsong());
 
 class Playsong extends StatefulWidget {
-  final arguments;
-
-  const Playsong({Key? key, this.arguments}) : super(key: key);
+  const Playsong({Key? key}) : super(key: key);
 
   @override
   PlaysongState createState() => PlaysongState();
@@ -41,13 +41,14 @@ class PlaysongState extends State<Playsong> with WidgetsBindingObserver {
 
   Future<void> _init() async {
     final session = await AudioSession.instance;
+    final controller = Get.put(CurrentSongController({}));
     await session.configure(const AudioSessionConfiguration.speech());
     _player.playbackEventStream.listen((event) {}, onError: (Object e, StackTrace stackTrace) {
       print('A stream error occurred: $e');
     });
     try {
       Map<String, dynamic> params = {};
-      params['id'] = widget.arguments['id'];
+      params['id'] = controller.currentSong['id'];
       var res = await SongApi.searchSongUrl(params);
       await _player
           .setAudioSource(AudioSource.uri(Uri.parse(res['data'][0]['url'].replaceFirst("http://", "https://"))));

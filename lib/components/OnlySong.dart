@@ -1,7 +1,7 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-22 16:21:17
- * @LastEditTime: 2022-06-29 13:39:00
+ * @LastEditTime: 2022-07-04 17:26:55
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/components/OnlySong.dart
  * @Description: 文件描述
@@ -19,7 +19,8 @@ class OnlySong extends StatefulWidget {
   }
 }
 
-class OnlySongState extends State<OnlySong> {
+class OnlySongState extends State<OnlySong> with AutomaticKeepAliveClientMixin {
+  bool get wantKeepAlive => true;
   ScrollController scrollController = ScrollController();
   final controller = Get.put(SongController(false, [], -12));
 
