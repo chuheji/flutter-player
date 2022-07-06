@@ -1,7 +1,7 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-17 15:16:08
- * @LastEditTime: 2022-06-29 13:35:15
+ * @LastEditTime: 2022-07-05 11:41:41
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/views/search.dart
  * @Description: 文件描述
@@ -15,7 +15,7 @@ import 'package:app/api/searchApi.dart';
 import 'package:get/get.dart';
 
 class Search extends StatefulWidget {
-  final controller = Get.put(SongController(false, [], -12));
+  final controller = Get.put(SongController(false, [], -5));
   @override
   State<StatefulWidget> createState() {
     return SearchWidgetState();
@@ -31,7 +31,7 @@ class SearchWidgetState extends State<Search> {
   }
 
   void onSearch(val, context) async {
-    final controller = Get.put(SongController(false, [], -12));
+    final controller = Get.put(SongController(false, [], -15));
     setState(() {
       status = 'afterSearch';
     });
@@ -81,11 +81,9 @@ class SearchWidgetState extends State<Search> {
                           });
                           return;
                         }
-                        Map<String, dynamic> params = Map();
-                        params['keywords'] = value;
-                        params['type'] = 'mobile';
-                        var data = await SearchApi.searchHotByKeyword(params);
+                        final data = await SearchApi.searchHotByKeyword({'keywords': value, 'type': 'mobile'});
                         var res = [];
+                        print(data);
                         for (var item in data['result']['allMatch']) {
                           res.add(item['keyword']);
                         }

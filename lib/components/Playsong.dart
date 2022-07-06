@@ -1,7 +1,7 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-27 14:31:32
- * @LastEditTime: 2022-06-29 16:23:43
+ * @LastEditTime: 2022-07-06 10:56:01
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/components/Playsong.dart
  * @Description: 文件描述
@@ -13,11 +13,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/instance_manager.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../controller/song_controller.dart';
 import 'common.dart';
 
-void main() => runApp(const Playsong());
+Future<void> main() async {
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+    androidNotificationChannelName: 'Audio playback',
+    androidNotificationOngoing: true,
+  );
+  runApp(const Playsong());
+}
 
 class Playsong extends StatefulWidget {
   const Playsong({Key? key}) : super(key: key);
@@ -26,13 +35,16 @@ class Playsong extends StatefulWidget {
   PlaysongState createState() => PlaysongState();
 }
 
-class PlaysongState extends State<Playsong> with WidgetsBindingObserver {
-  final _player = AudioPlayer();
+class PlaysongState extends State<Playsong> {
+  static int _nextMediaId = 0;
+  late AudioPlayer _player;
+  late final _playlist = ConcatenatingAudioSource(children: []);
+  int _addedCount = 0;
 
   @override
   void initState() {
     super.initState();
-    ambiguate(WidgetsBinding.instance)!.addObserver(this);
+    _player = AudioPlayer();
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.black,
     ));
@@ -40,35 +52,62 @@ class PlaysongState extends State<Playsong> with WidgetsBindingObserver {
   }
 
   Future<void> _init() async {
+    final currentSongController = Get.put(CurrentSongController({}));
+    final songController = Get.put(SongController(false, [], -15));
     final session = await AudioSession.instance;
-    final controller = Get.put(CurrentSongController({}));
     await session.configure(const AudioSessionConfiguration.speech());
+    // Listen to errors during playback.
     _player.playbackEventStream.listen((event) {}, onError: (Object e, StackTrace stackTrace) {
       print('A stream error occurred: $e');
     });
     try {
-      Map<String, dynamic> params = {};
-      params['id'] = controller.currentSong['id'];
-      var res = await SongApi.searchSongUrl(params);
-      await _player
-          .setAudioSource(AudioSource.uri(Uri.parse(res['data'][0]['url'].replaceFirst("http://", "https://"))));
-    } catch (e) {
-      print("Error loading audio source: $e");
+      var res = await SongApi.searchSongUrl({'id': currentSongController.currentSong['id']});
+      await _playlist.add(
+        ClippingAudioSource(
+          // start: const Duration(seconds: 60),
+          // end: const Duration(seconds: 90),
+          child: AudioSource.uri(Uri.parse(res['data'][0]['url'].replaceFirst("http://", "https://"))),
+          tag: MediaItem(
+            id: '${_nextMediaId++}',
+            album: currentSongController.currentSong['al']['name'],
+            title: currentSongController.currentSong['name'],
+            artUri: Uri.parse(currentSongController.currentSong['al']['picUrl'].replaceFirst("http://", "https://")),
+          ),
+        ),
+      );
+      songController.songList.forEach((element) async {
+        if (element['id'] != currentSongController.currentSong['id']) {
+          var res2 = await SongApi.searchSongUrl({'id': element['id']});
+          await _playlist.add(
+            AudioSource.uri(
+              Uri.parse(res2['data'][0]['url'].replaceFirst("http://", "https://")),
+              tag: MediaItem(
+                id: '${_nextMediaId++}',
+                album: element['al']['name'],
+                title: element['name'],
+                artUri: Uri.parse(element['al']['picUrl'].replaceFirst("http://", "https://")),
+              ),
+            ),
+          );
+        }
+      });
+
+      await _player.setAudioSource(_playlist);
+    } catch (e, stackTrace) {
+      // Catch load errors: 404, invalid url ...
+      print("Error loading playlist: $e");
+      print(stackTrace);
     }
+    await session.configure(const AudioSessionConfiguration.speech());
+    _player.playbackEventStream.listen((event) {}, onError: (Object e, StackTrace stackTrace) {
+      print('A stream error occurred: $e');
+    });
   }
 
   @override
   void dispose() {
-    ambiguate(WidgetsBinding.instance)!.removeObserver(this);
     _player.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _player.stop();
-    }
   }
 
   Stream<PositionData> get _positionDataStream => Rx.combineLatest3<Duration, Duration, Duration?, PositionData>(
@@ -87,6 +126,31 @@ class PlaysongState extends State<Playsong> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Expanded(
+                child: StreamBuilder<SequenceState?>(
+                  stream: _player.sequenceStateStream,
+                  builder: (context, snapshot) {
+                    final state = snapshot.data;
+                    if (state?.sequence.isEmpty ?? true) {
+                      return const SizedBox();
+                    }
+                    final metadata = state!.currentSource!.tag as MediaItem;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(child: Image.network(metadata.artUri.toString())),
+                          ),
+                        ),
+                        Text(metadata.album!, style: Theme.of(context).textTheme.headline6),
+                        Text(metadata.title),
+                      ],
+                    );
+                  },
+                ),
+              ),
               ControlButtons(_player),
               StreamBuilder<PositionData>(
                 stream: _positionDataStream,
@@ -96,19 +160,129 @@ class PlaysongState extends State<Playsong> with WidgetsBindingObserver {
                     duration: positionData?.duration ?? Duration.zero,
                     position: positionData?.position ?? Duration.zero,
                     bufferedPosition: positionData?.bufferedPosition ?? Duration.zero,
-                    onChangeEnd: _player.seek,
+                    onChangeEnd: (newPosition) {
+                      _player.seek(newPosition);
+                    },
                   );
                 },
               ),
+              const SizedBox(height: 8.0),
+              Row(
+                children: [
+                  StreamBuilder<LoopMode>(
+                    stream: _player.loopModeStream,
+                    builder: (context, snapshot) {
+                      final loopMode = snapshot.data ?? LoopMode.off;
+                      const icons = [
+                        Icon(Icons.repeat, color: Colors.grey),
+                        Icon(Icons.repeat, color: Colors.orange),
+                        Icon(Icons.repeat_one, color: Colors.orange),
+                      ];
+                      const cycleModes = [
+                        LoopMode.off,
+                        LoopMode.all,
+                        LoopMode.one,
+                      ];
+                      final index = cycleModes.indexOf(loopMode);
+                      return IconButton(
+                        icon: icons[index],
+                        onPressed: () {
+                          _player.setLoopMode(cycleModes[(cycleModes.indexOf(loopMode) + 1) % cycleModes.length]);
+                        },
+                      );
+                    },
+                  ),
+                  Expanded(
+                    child: Text(
+                      "Playlist",
+                      style: Theme.of(context).textTheme.headline6,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  StreamBuilder<bool>(
+                    stream: _player.shuffleModeEnabledStream,
+                    builder: (context, snapshot) {
+                      final shuffleModeEnabled = snapshot.data ?? false;
+                      return IconButton(
+                        icon: shuffleModeEnabled
+                            ? const Icon(Icons.shuffle, color: Colors.orange)
+                            : const Icon(Icons.shuffle, color: Colors.grey),
+                        onPressed: () async {
+                          final enable = !shuffleModeEnabled;
+                          if (enable) {
+                            await _player.shuffle();
+                          }
+                          await _player.setShuffleModeEnabled(enable);
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 240.0,
+                child: StreamBuilder<SequenceState?>(
+                  stream: _player.sequenceStateStream,
+                  builder: (context, snapshot) {
+                    final state = snapshot.data;
+                    final sequence = state?.sequence ?? [];
+                    return ReorderableListView(
+                      onReorder: (int oldIndex, int newIndex) {
+                        if (oldIndex < newIndex) newIndex--;
+                        _playlist.move(oldIndex, newIndex);
+                      },
+                      children: [
+                        for (var i = 0; i < sequence.length; i++)
+                          Dismissible(
+                            key: ValueKey(sequence[i]),
+                            background: Container(
+                              color: Colors.redAccent,
+                              alignment: Alignment.centerRight,
+                              child: const Padding(
+                                padding: EdgeInsets.only(right: 8.0),
+                                child: Icon(Icons.delete, color: Colors.white),
+                              ),
+                            ),
+                            onDismissed: (dismissDirection) {
+                              _playlist.removeAt(i);
+                            },
+                            child: Material(
+                              color: i == state!.currentIndex ? Colors.grey.shade300 : null,
+                              child: ListTile(
+                                title: Text(sequence[i].tag.title as String),
+                                onTap: () {
+                                  _player.seek(Duration.zero, index: i);
+                                },
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ],
           ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          child: const Icon(Icons.add),
+          onPressed: () {
+            _playlist.add(AudioSource.uri(
+              Uri.parse("asset:///audio/nature.mp3"),
+              tag: MediaItem(
+                id: '${_nextMediaId++}',
+                album: "Public Domain",
+                title: "Nature Sounds ${++_addedCount}",
+                artUri: Uri.parse("https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg"),
+              ),
+            ));
+          },
         ),
       ),
     );
   }
 }
 
-/// Displays the play/pause button and volume/speed sliders.
 class ControlButtons extends StatelessWidget {
   final AudioPlayer player;
 
@@ -119,7 +293,6 @@ class ControlButtons extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Opens volume slider dialog
         IconButton(
           icon: const Icon(Icons.volume_up),
           onPressed: () {
@@ -129,17 +302,18 @@ class ControlButtons extends StatelessWidget {
               divisions: 10,
               min: 0.0,
               max: 1.0,
-              value: player.volume,
               stream: player.volumeStream,
               onChanged: player.setVolume,
             );
           },
         ),
-
-        /// This StreamBuilder rebuilds whenever the player state changes, which
-        /// includes the playing/paused state and also the
-        /// loading/buffering/ready state. Depending on the state we show the
-        /// appropriate button or loading indicator.
+        StreamBuilder<SequenceState?>(
+          stream: player.sequenceStateStream,
+          builder: (context, snapshot) => IconButton(
+            icon: const Icon(Icons.skip_previous),
+            onPressed: player.hasPrevious ? player.seekToPrevious : null,
+          ),
+        ),
         StreamBuilder<PlayerState>(
           stream: player.playerStateStream,
           builder: (context, snapshot) {
@@ -169,30 +343,35 @@ class ControlButtons extends StatelessWidget {
               return IconButton(
                 icon: const Icon(Icons.replay),
                 iconSize: 64.0,
-                onPressed: () => player.seek(Duration.zero),
+                onPressed: () => player.seek(Duration.zero, index: player.effectiveIndices!.first),
               );
             }
           },
         ),
-        // Opens speed slider dialog
-        StreamBuilder<double>(
-          stream: player.speedStream,
+        StreamBuilder<SequenceState?>(
+          stream: player.sequenceStateStream,
           builder: (context, snapshot) => IconButton(
-            icon: Text("${snapshot.data?.toStringAsFixed(1)}x", style: const TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () {
-              showSliderDialog(
-                context: context,
-                title: "Adjust speed",
-                divisions: 10,
-                min: 0.5,
-                max: 1.5,
-                value: player.speed,
-                stream: player.speedStream,
-                onChanged: player.setSpeed,
-              );
-            },
+            icon: const Icon(Icons.skip_next),
+            onPressed: player.hasNext ? player.seekToNext : null,
           ),
         ),
+        // StreamBuilder<double>(
+        //   stream: player.speedStream,
+        //   builder: (context, snapshot) => IconButton(
+        //     icon: Text("${snapshot.data?.toStringAsFixed(1)}x", style: const TextStyle(fontWeight: FontWeight.bold)),
+        //     onPressed: () {
+        //       showSliderDialog(
+        //         context: context,
+        //         title: "Adjust speed",
+        //         divisions: 10,
+        //         min: 0.5,
+        //         max: 1.5,
+        //         stream: player.speedStream,
+        //         onChanged: player.setSpeed,
+        //       );
+        //     },
+        //   ),
+        // ),
       ],
     );
   }

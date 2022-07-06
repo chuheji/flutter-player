@@ -1,7 +1,7 @@
 /*
  * @Author: liuyouxiang<xlfLuminous@163.com>
  * @Date: 2022-06-28 11:22:13
- * @LastEditTime: 2022-06-28 11:22:14
+ * @LastEditTime: 2022-07-05 13:53:36
  * @LastEditors: liuyouxiang<xlfLuminous@163.com>
  * @FilePath: /app/lib/components/common.dart
  * @Description: 文件描述
@@ -150,8 +150,6 @@ void showSliderDialog({
   required double min,
   required double max,
   String valueSuffix = '',
-  // TODO: Replace these two by ValueStream.
-  required double value,
   required Stream<double> stream,
   required ValueChanged<double> onChanged,
 }) {
@@ -171,7 +169,7 @@ void showSliderDialog({
                 divisions: divisions,
                 min: min,
                 max: max,
-                value: snapshot.data ?? value,
+                value: snapshot.data ?? 1.0,
                 onChanged: onChanged,
               ),
             ],
@@ -181,5 +179,3 @@ void showSliderDialog({
     ),
   );
 }
-
-T? ambiguate<T>(T? value) => value;
